@@ -161,3 +161,37 @@ document.querySelectorAll('.box').forEach(box => {
     }
   });
 });
+
+
+const draggableElement = document.getElementById('draggable');
+
+let isDragging = false;
+let startX, startY, initialX, initialY;
+
+const touchStartHandler = (e) => {
+    isDragging = true;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    initialX = draggableElement.offsetLeft;
+    initialY = draggableElement.offsetTop;
+};
+
+const touchMoveHandler = (e) => {
+    if (isDragging) {
+        const dx = e.touches[0].clientX - startX;
+        const dy = e.touches[0].clientY - startY;
+        draggableElement.style.left = `${initialX + dx}px`;
+        draggableElement.style.top = `${initialY + dy}px`;
+    }
+};
+
+const touchEndHandler = () => {
+    isDragging = false;
+};
+
+// Add event listeners
+if (draggableElement) {
+    draggableElement.addEventListener('touchstart', touchStartHandler);
+    draggableElement.addEventListener('touchmove', touchMoveHandler);
+    draggableElement.addEventListener('touchend', touchEndHandler);
+}
