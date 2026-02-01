@@ -102,38 +102,76 @@ function clearHighlights() {
 
 //movements of the knight
 const knight = document.querySelector(".knight");
-knight.addEventListener("dragstart", dragStart);
 
-// Touch events for mobile drag and drop
-let touchStartX, touchStartY;
+// Variables for dragging
+let isDragging = false;
+let isMouseDragging = false;
 let isTouchDragging = false;
+let dragOffsetX, dragOffsetY;
+let originalParent;
 
+// Mouse events for desktop drag
+knight.addEventListener("mousedown", mouseDown);
+document.addEventListener("mousemove", mouseMove);
+document.addEventListener("mouseup", mouseUp);
+
+// Touch events for mobile drag
 knight.addEventListener("touchstart", touchStart);
 knight.addEventListener("touchmove", touchMove);
 knight.addEventListener("touchend", touchEnd);
 
-function touchStart(e) {
-  e.preventDefault();
+function startDrag(e) {
   beingDragged = e.target;
-  isTouchDragging = true;
-  touchStartX = e.touches[0].clientX;
-  touchStartY = e.touches[0].clientY;
+  isDragging = true;
+  originalParent = beingDragged.parentElement;
+  
+  // Calculate offset from mouse/touch to knight center
+  const rect = beingDragged.getBoundingClientRect();
+  dragOffsetX = rect.width / 2;
+  dragOffsetY = rect.height / 2;
+  
+  // Make knight follow cursor/finger
+  beingDragged.style.position = 'fixed';
+  beingDragged.style.zIndex = '1000';
+  beingDragged.style.transform = 'scale(1.2)';
+  beingDragged.style.pointerEvents = 'none';
+  
+  // Set initial position immediately to prevent jumping
+  const initialX = e.clientX - dragOffsetX;
+  const initialY = e.clientY - dragOffsetY;
+  beingDragged.style.left = `${initialX}px`;
+  beingDragged.style.top = `${initialY}px`;
+  
   highlightLegalMoves();
 }
 
-function touchMove(e) {
-  if (!isTouchDragging) return;
+function moveDrag(e) {
+  if (!isDragging) return;
   e.preventDefault();
-  // Optional: You could add visual feedback here if desired
+  
+  const x = e.clientX - dragOffsetX;
+  const y = e.clientY - dragOffsetY;
+  
+  beingDragged.style.left = `${x}px`;
+  beingDragged.style.top = `${y}px`;
 }
 
-function touchEnd(e) {
-  if (!isTouchDragging) return;
-  e.preventDefault();
+function endDrag(e) {
+  if (!isDragging) return;
+  isDragging = false;
+  isMouseDragging = false;
   isTouchDragging = false;
   
-  const touch = e.changedTouches[0];
-  const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+  // Reset knight styles
+  beingDragged.style.position = '';
+  beingDragged.style.zIndex = '';
+  beingDragged.style.transform = '';
+  beingDragged.style.left = '';
+  beingDragged.style.top = '';
+  beingDragged.style.pointerEvents = '';
+  
+  // Check if dropped on a legal box
+  const targetElement = document.elementFromPoint(e.clientX, e.clientY);
   
   if (targetElement && targetElement.classList.contains('box')) {
     const pos = getKnightPosition();
@@ -143,40 +181,55 @@ function touchEnd(e) {
     const isLegal = moves.some(move => move.row === targetRow && move.col === targetCol);
     if (isLegal) {
       targetElement.append(beingDragged);
+    } else {
+      // Return to original position if not legal
+      originalParent.append(beingDragged);
     }
+  } else {
+    // Return to original position
+    originalParent.append(beingDragged);
   }
+  
   clearHighlights();
+}
+
+function mouseDown(e) {
+  e.preventDefault();
+  isMouseDragging = true;
+  startDrag(e);
+}
+
+function mouseMove(e) {
+  if (isMouseDragging) {
+    moveDrag(e);
+  }
+}
+
+function mouseUp(e) {
+  if (isMouseDragging) {
+    endDrag(e);
+  }
+}
+
+function touchStart(e) {
+  e.preventDefault();
+  isTouchDragging = true;
+  startDrag(e.touches[0]);
+}
+
+function touchMove(e) {
+  if (isTouchDragging) {
+    moveDrag(e.touches[0]);
+  }
+}
+
+function touchEnd(e) {
+  if (isTouchDragging) {
+    endDrag(e.changedTouches[0]);
+  }
 }
 
 let beingDragged;
-document.querySelectorAll(".box").forEach(box => {
-  box.addEventListener("dragover", dragOver);
-  box.addEventListener("drop", dragDrop);
-})
-
-function dragOver(e) {
-  e.preventDefault();
-}
-
-function dragStart(e) {
-  beingDragged = e.target;
-  e.dataTransfer.setData('text/plain', '');
-  e.dataTransfer.effectAllowed = 'move';
-  highlightLegalMoves();
-}
-
-function dragDrop(e) {
-  const targetBox = e.currentTarget;
-  const pos = getKnightPosition();
-  const moves = getLegalMoves(pos.row, pos.col);
-  const targetRow = parseInt(targetBox.getAttribute('data-row'));
-  const targetCol = parseInt(targetBox.getAttribute('data-col'));
-  const isLegal = moves.some(move => move.row === targetRow && move.col === targetCol);
-  if (isLegal) {
-    e.currentTarget.append(beingDragged);
-  }
-  clearHighlights();
-}
 
 // Click functionality
 const knightElement = document.querySelector('.knight');
@@ -206,36 +259,3 @@ document.querySelectorAll('.box').forEach(box => {
   });
 });
 
-
-const draggableElement = document.getElementById('draggable');
-
-let isDragging = false;
-let startX, startY, initialX, initialY;
-
-const touchStartHandler = (e) => {
-    isDragging = true;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    initialX = draggableElement.offsetLeft;
-    initialY = draggableElement.offsetTop;
-};
-
-const touchMoveHandler = (e) => {
-    if (isDragging) {
-        const dx = e.touches[0].clientX - startX;
-        const dy = e.touches[0].clientY - startY;
-        draggableElement.style.left = `${initialX + dx}px`;
-        draggableElement.style.top = `${initialY + dy}px`;
-    }
-};
-
-const touchEndHandler = () => {
-    isDragging = false;
-};
-
-// Add event listeners
-if (draggableElement) {
-    draggableElement.addEventListener('touchstart', touchStartHandler);
-    draggableElement.addEventListener('touchmove', touchMoveHandler);
-    draggableElement.addEventListener('touchend', touchEndHandler);
-}
