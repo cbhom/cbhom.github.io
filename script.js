@@ -54,40 +54,6 @@ for (let i=0; i<6; i++) {
       knight.src = "knight.svg";
       knight.alt = "Knight Piece";
       knight.className = "knight";
-      knight.draggable = true;
-      
-      // Add touch events for mobile
-      knight.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        isTouchDragging = true;
-        touchStartBox = knight.parentElement;
-        highlightLegalMoves();
-      });
-      
-      knight.addEventListener('touchend', (e) => {
-        if (isTouchDragging) {
-          e.preventDefault();
-          const touch = e.changedTouches[0];
-          const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-          const targetBox = targetElement ? targetElement.closest('.box') : null;
-          
-          if (targetBox && targetBox !== touchStartBox) {
-            const pos = getKnightPosition();
-            const moves = getLegalMoves(pos.row, pos.col);
-            const targetRow = parseInt(targetBox.getAttribute('data-row'));
-            const targetCol = parseInt(targetBox.getAttribute('data-col'));
-            const isLegal = moves.some(move => move.row === targetRow && move.col === targetCol);
-            
-            if (isLegal) {
-              targetBox.append(knight);
-            }
-          }
-          
-          clearHighlights();
-          isTouchDragging = false;
-          touchStartBox = null;
-        }
-      });
       
       box.append(knight)
     }
@@ -134,42 +100,9 @@ function clearHighlights() {
   document.querySelectorAll('.legal').forEach(box => box.classList.remove('legal'));
 }
 
-//movements of the knight
-const knight = document.querySelector(".knight");
-knight.addEventListener("dragstart", dragStart);
-
-let beingDragged;
-document.querySelectorAll(".box").forEach(box => {
-  box.addEventListener("dragover", dragOver);
-  box.addEventListener("drop", dragDrop);
-})
-
-function dragOver(e) {
-  e.preventDefault();
-}
-
-function dragStart(e) {
-  beingDragged = e.target;
-  e.dataTransfer.setData('text/plain', '');
-  e.dataTransfer.effectAllowed = 'move';
-  highlightLegalMoves();
-}
-
-function dragDrop(e) {
-  const targetBox = e.currentTarget;
-  const pos = getKnightPosition();
-  const moves = getLegalMoves(pos.row, pos.col);
-  const targetRow = parseInt(targetBox.getAttribute('data-row'));
-  const targetCol = parseInt(targetBox.getAttribute('data-col'));
-  const isLegal = moves.some(move => move.row === targetRow && move.col === targetCol);
-  if (isLegal) {
-    e.currentTarget.append(beingDragged);
-  }
-  clearHighlights();
-}
-
-
 const knightElement = document.querySelector('.knight');
+
+
 knightElement.addEventListener('click', () => {
   if (!isHighlighting) {
     highlightLegalMoves();
@@ -177,7 +110,17 @@ knightElement.addEventListener('click', () => {
   }
 });
 
+
+knightElement.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  if (!isHighlighting) {
+    highlightLegalMoves();
+    isHighlighting = true;
+  }
+});
+
 document.querySelectorAll('.box').forEach(box => {
+
   box.addEventListener('click', (e) => {
     if (isHighlighting) {
       const pos = getKnightPosition();
@@ -192,40 +135,20 @@ document.querySelectorAll('.box').forEach(box => {
       isHighlighting = false;
     }
   });
-});
-
-
-const draggableElement = document.getElementById('draggable');
-
-let isDragging = false;
-let startX, startY, initialX, initialY;
-
-const touchStartHandler = (e) => {
-    isDragging = true;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    initialX = draggableElement.offsetLeft;
-    initialY = draggableElement.offsetTop;
-};
-
-const touchMoveHandler = (e) => {
-    if (isDragging) {
-        const dx = e.touches[0].clientX - startX;
-        const dy = e.touches[0].clientY - startY;
-        draggableElement.style.left = `${initialX + dx}px`;
-        draggableElement.style.top = `${initialY + dy}px`;
+  
+  box.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (isHighlighting) {
+      const pos = getKnightPosition();
+      const moves = getLegalMoves(pos.row, pos.col);
+      const targetRow = parseInt(box.getAttribute('data-row'));
+      const targetCol = parseInt(box.getAttribute('data-col'));
+      const isLegal = moves.some(move => move.row === targetRow && move.col === targetCol);
+      if (isLegal) {
+        box.append(document.querySelector('.knight'));
+      }
+      clearHighlights();
+      isHighlighting = false;
     }
-};
-
-const touchEndHandler = () => {
-    isDragging = false;
-};
-
-if (draggableElement) {
-    draggableElement.addEventListener('touchstart', touchStartHandler);
-    draggableElement.addEventListener('touchmove', touchMoveHandler);
-    draggableElement.addEventListener('touchend', touchEndHandler);
-}
-
-let isTouchDragging = false;
-let touchStartBox = null;
+  });
+});
